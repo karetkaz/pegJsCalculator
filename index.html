@@ -1,0 +1,428 @@
+<html>
+<head>
+<title>Calculator</title>
+<script type="text/javascript">
+
+function listEl(title, value, dofun) {
+	this.title = title;
+	this.value = value;
+	this.dofun = dofun;
+}
+
+var calculator = {};
+calculator.functions = {
+
+	sin: Math.sin,
+	asin: Math.asin,
+	sinh: function(v){return (Math.exp(v) - Math.exp(-v)) / 2;},
+	asinh: function(v){return Math.log(v + Math.sqrt(v * v + 1));},
+
+	cos: Math.cos,
+	acos: Math.acos,
+	cosh: function(v){return (Math.exp(v) + Math.exp(-v)) / 2;},
+	acosh: function(v){return Math.log(v + Math.sqrt(v * v - 1));},
+
+	tan: Math.tan,
+	atan: Math.atan,
+	tanh: function(v){return (Math.exp(v) - Math.exp(-v)) / (Math.exp(v) + Math.exp(-v));},
+	atanh: function(v){return Math.log((1 + v) / (1 - v)) / 2;},
+	atan2: Math.atan2,
+
+	sec: function(v){return 1 / Math.cos(v);},
+	asec: function(v){return Math.PI / 2 - Math.asin(1 / v);},
+	sech: function(v){return 2 / (Math.exp(v) + Math.exp(-v));},
+	asech: function(v){return Math.log((1 + Math.sqrt(1 - v * v)) / v);},
+
+	cosec: function(v){return 1 / Math.sin(v);},
+	acosec: function(v){return Math.asin(1 / v);},
+	cosech: function(v){return 2 / (Math.exp(v) - Math.exp(-v));},
+	acosech: function(v){
+		return v < 0
+			? Math.log((1 - Math.sqrt(1 + v * v)) / v)
+			: Math.log((1 + Math.sqrt(1 + v * v)) / v);
+	},
+
+	cot: function(v){return 1 / Math.tan(v);},
+	acot: function(v){return Math.PI / 2 - Math.atan(v);},
+	coth: function(v){return (Math.exp(v) + Math.exp(-v)) / (Math.exp(v) - Math.exp(-v));},
+	acoth: function(v){return Math.log((v + 1) / (v - 1)) / 2;},
+
+	ln: Math.log,
+	exp: Math.exp,
+	pow: Math.pow,
+	sqrt: Math.sqrt,
+
+	log: function(v, base){return Math.log(v) / Math.log(base);},
+	log2: function(v){return Math.log(v) / Math.LN2;},
+	log10: function(v){return Math.log(v) / Math.LN10;},
+
+	min: Math.min,
+	max: Math.max,
+	rand: Math.random,
+	random: Math.random,
+
+	abs: Math.abs,
+	sign: function(v){return v == 0 ? 0 : (v > 0 ? 1 : -1);},
+	ceil: Math.ceil,
+	floor: Math.floor,
+	round: Math.round,
+	deg2rad: function(v){return v * Math.PI / 180;},
+	rad2deg: function(v){return v * 180 / Math.PI;}
+};
+calculator.constants = {	// here nothing should be undefined, null, nan or false
+	//~ e: Math.E,
+	//~ pi: Math.PI,
+
+	//~ E: Math.E,
+	//~ PI: Math.PI,
+	//~ LN2: Math.LN2,
+	//~ LN10: Math.LN10,
+	//~ LOG2E: Math.LOG2E,
+	//~ LOG10E: Math.LOG10E,
+	//~ SQRT1_2: Math.SQRT1_2,
+	//~ SQRT2: Math.SQRT2
+}
+calculator.variables = {
+	e: Math.E,
+	pi: Math.PI,
+
+	E: Math.E,
+	PI: Math.PI,
+	LN2: Math.LN2,
+	LN10: Math.LN10,
+	LOG2E: Math.LOG2E,
+	LOG10E: Math.LOG10E,
+	SQRT1_2: Math.SQRT1_2,
+	SQRT2: Math.SQRT2
+};
+
+calculator.examples = [
+	new listEl("x number n'th digit in base r", 'x = 179;\nr = 10;\nn = 0;\nfloor((x / (r ** n)) % r)')
+];
+calculator.history = [];
+</script>
+<script type="text/javascript" src="parser.js"></script>
+<script type="text/javascript">
+
+var doClear = false;
+var logIndex = calculator.history.length;
+var multilineInput = false;
+
+function doExpression(input) {
+	var expr = input.value;
+	try {
+		doClear = true;
+		calculator.history[calculator.history.length] = expr;
+		logIndex = calculator.history.length;
+		input.value = calculator.parser.parse(expr);
+	}
+	catch (e) {
+		input.value = e.line !== undefined && e.column !== undefined
+			? "Line " + e.line + ", column " + e.column + ": " + e.message
+			: e.message;
+	}
+}
+function doFunction(input, value, noparams) {
+	if (noparams) {
+		input.value = value + input.value;
+	}
+	else {
+		input.value = value + '(' + input.value + ')';
+	}
+	logIndex = calculator.history.length;
+	doClear = false;
+}
+function doOperator(input, value) {
+	input.value = input.value + ' ' + value + ' ';
+	logIndex = calculator.history.length;
+	doClear = false;
+}
+function doValue(input, value) {
+	if (doClear) {
+		input.value = '';
+	}
+	input.value += value;
+	logIndex = calculator.history.length;
+	doClear = false;
+}
+function doText(input, value) {
+	input.value = value;
+	doClear = true;
+}
+
+function setButton(row, col, value, alt) {
+	var el = document.getElementById('b' + row + col);
+	if (el) {
+		el.value = value;
+		el.title = alt || '';
+	}
+}
+function modeHex() {
+	setButton(1, 1, 'D');
+	setButton(1, 2, 'E');
+	setButton(1, 3, 'F');
+	setButton(1, 5, '<<', 'Shift left');
+	setButton(2, 1, 'A');
+	setButton(2, 2, 'B');
+	setButton(2, 3, 'C');
+	setButton(2, 5, '>>', 'Shift right');
+	setButton(3, 5, '>>>', 'Shift right unsigned');
+	setButton(4, 5, '&');
+	setButton(5, 5, '|');
+	setButton(6, 5, '^');
+	setButton(6, 2, '~');
+}
+function modeMath() {
+	setButton(1, 1, 'sin');
+	setButton(1, 2, 'cos');
+	setButton(1, 3, 'tan');
+	setButton(1, 5, 'e');
+	setButton(2, 1, 'asin');
+	setButton(2, 2, 'acos');
+	setButton(2, 3, 'atan');
+	setButton(2, 5, 'pi');
+	setButton(3, 5, '**');
+	setButton(4, 5, 'sqrt');
+	setButton(5, 5, 'exp');
+	setButton(6, 5, 'ln');
+	setButton(6, 2, '.');
+}
+function modeMath2() {
+	setButton(1, 1, 'sinh');
+	setButton(1, 2, 'cosh');
+	setButton(1, 3, 'tanh');
+	setButton(1, 5, 'e');
+	setButton(2, 1, 'asinh');
+	setButton(2, 2, 'acosh');
+	setButton(2, 3, 'atanh');
+	setButton(2, 5, 'pi');
+	setButton(3, 5, '**');
+	setButton(4, 5, 'sqrt');
+	setButton(5, 5, 'exp');
+	setButton(6, 5, 'log2');
+	setButton(6, 2, '.');
+}
+function doMode(select) {
+	switch (select.selectedIndex) {
+		case 0: modeHex(); break;
+		case 1: modeMath(); break;
+		case 2: modeMath2(); break;
+	}
+}
+
+function stepThroughLog(reverse) {
+	if (reverse) {
+		if (logIndex >= calculator.history.length - 1)
+			logIndex = calculator.history.length - 1;
+		else
+			logIndex += 1;
+	}
+	else {
+		if ((logIndex -= 1) < 0)
+			logIndex = 0;
+	}
+	input.value = calculator.history[logIndex];
+	//~ debuggie.value = logIndex;
+}
+
+function doKey(e, input) {
+
+	if (multilineInput)
+		return;
+
+	var consume = true;
+	switch (e.keyCode) {
+		default:
+			consume = false;
+			break;
+
+		case 27: // escape
+			input.value = '';
+			break;
+
+		case 13: // enter
+			doExpression(input);
+			break;
+
+		case 38: // up
+			stepThroughLog();
+			break;
+
+		case 40: // down
+			stepThroughLog(true);
+			break;
+	}
+	if (consume && e.preventDefault) {
+		e.preventDefault();
+	}
+}
+
+function doList(obj, options) {
+
+	function insertItem(item) {
+		var cmd = undefined;
+		var str = '';
+		if (item.constructor === String) {
+			str = item;
+			cmd = 'doText(input, \'' + str.replace(/\n/g, '\\n') + '\');';
+		}
+		else if (item.constructor === listEl) {
+			str = item.title;
+			cmd = (item.dofun || 'doText') + '(input, \'' + item.value.replace(/\n/g, '\\n') + '\');';
+		}
+		else {
+			throw "Dont know how to insert " + obj.constructor;
+		}
+
+		var ul = document.createElement('li');
+
+		ul.innerHTML = '<a href="javascript:' + (cmd || 'void(0)') + '">' + str + '</a>';
+		if (options.deletable) {
+			ul.innerHTML = '<a href="#" onclick="this.parentElement.parentElement.removeChild(this.parentElement)">x</a> ' + ul.innerHTML;
+		}
+
+		list.insertBefore(ul, options.append ? null : list.children[0]);
+
+	}
+
+	if (!options) {
+		options = {};
+	}
+
+	while (list.hasChildNodes()) {
+		list.removeChild(list.children[0]);
+	}
+
+	if (obj.constructor === Array) {
+		for (var i = 0; i < obj.length; i += 1) {
+			if (obj[i]) {
+				insertItem(obj[i]);
+			}
+		}
+	}
+
+	else for (var o in obj) {
+		if (typeof(obj[o]) == 'function') {
+			insertItem(new listEl(o, o, 'doFunction'));
+		}
+		else if (typeof(obj[o]) == 'number') {
+			insertItem(new listEl(o, o, 'doValue'));
+		}
+		else {
+			insertItem(new listEl(o, o));
+		}
+	}
+}
+
+</script>
+<style type="text/css">
+table tr td input{width: 46px;}
+table tr td{text-align: center;}
+div ul{margin: 0; padding-top: 0;}
+</style>
+</head>
+<body>
+Expression Calculator:
+<a href="javascript:void(options.hidden = !options.hidden);">Options</a>
+<a href="javascript:void(help.hidden = !help.hidden);">Help</a>
+<br />
+<table>
+	<tr><!--                  -->
+		<td colspan="5"><textarea type="text" rows="3" style="width: 100%" id="input" onkeydown="doKey(event, input);"></textarea></td>
+	</tr>
+	<tr><!-- Mode  C  Execute -->
+		<td colspan="2" ><select id="mode" onchange="doMode(this);" >
+				<option>Bits</option>
+				<option selected>Math</option>
+				<option>Math2</option>
+			</select>
+		</td>
+		<td><input type="button" value="Clear" onclick="input.value = '';" /></td>
+		<td colspan="2"><input type="button" style="width: 100%" value="Execute" onclick="doExpression(input);" /></td>
+	</tr>
+	<tr><!-- D  E  F  () e    -->
+		<td><input id="b11" type="button" value="sin" onclick="(this.value == 'D' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b12" type="button" value="cos" onclick="(this.value == 'E' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b13" type="button" value="tan" onclick="(this.value == 'F' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b14" type="button" value="()" onclick="doFunction(input, '')" /></td>
+		<td><input id="b15" type="button" value="e" onclick="(this.value !== '<<' ? doValue : doOperator)(input, this.value)" /></td>
+	</tr>
+	<tr><!-- A  B  C  %  pi   -->
+		<td><input id="b21" type="button" value="asin" onclick="(this.value === 'A' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b22" type="button" value="acos" onclick="(this.value === 'B' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b23" type="button" value="atan" onclick="(this.value === 'C' ? doValue : doFunction)(input, this.value)" /></td>
+		<td><input id="b24" type="button" value="%" onclick="doOperator(input, this.value)" /></td>
+		<td><input id="b25" type="button" value="pi" onclick="(this.value !== '>>' ? doValue : doOperator)(input, this.value)" /></td>
+	</tr>
+	<tr><!-- 7  8  9  /  pow  -->
+		<td><input id="b31" type="button" value="7" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b32" type="button" value="8" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b33" type="button" value="9" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b34" type="button" value="/" onclick="doOperator(input, this.value)" /></td>
+		<td><input id="b35" type="button" value="**" onclick="doOperator(input, this.value)" /></td>
+	</tr>
+	<tr><!-- 4  5  6  *  sqrt -->
+		<td><input id="b41" type="button" value="4" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b42" type="button" value="5" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b43" type="button" value="6" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b44" type="button" value="*" onclick="doOperator(input, this.value)" /></td>
+		<td><input id="b45" type="button" value="sqrt" onclick="(this.value !== '&' ? doFunction : doOperator)(input, this.value)" /></td>
+	</tr>
+	<tr><!-- 1  2  3  -  exp  -->
+		<td><input id="b51" type="button" value="1" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b52" type="button" value="2" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b53" type="button" value="3" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b54" type="button" value="-" onclick="doOperator(input, this.value)" /></td>
+		<td><input id="b55" type="button" value="exp" onclick="(this.value !== '|' ? doFunction : doOperator)(input, this.value)" /></td>
+	</tr>
+	<tr><!-- 0  .  ±  +  ln   -->
+		<td><input id="b61" type="button" value="0" onclick="doValue(input, this.value)" /></td>
+		<td><input id="b62" type="button" value="." onclick="(this.value !== '~' ? doValue : doFunction)(input, this.value, true)" /></td>
+		<td><input id="b63" type="button" value="&plusmn;" onclick="doFunction(input, '-', true)" /></td>
+		<td><input id="b64" type="button" value="+" onclick="doOperator(input, this.value)" /></td>
+		<td><input id="b65" type="button" value="ln" onclick="(this.value !== '^' ? doFunction : doOperator)(input, this.value)" /></td>
+	</tr>
+</table>
+<a href="javascript:doList(calculator.examples);" >Examples</a>
+<a href="javascript:doList(calculator.history);" >History</a>
+<a href="javascript:doList([]);" >Hide List</a>
+<br />
+<a href="javascript:doList(calculator.functions, {append:true});" >Functions</a>
+<a href="javascript:doList(calculator.variables, {append:true});" >Variables</a>
+<br />
+<div id="help" hidden="true"><br />
+About
+<ul>
+	<li><a href="parser.pegjs">grammar</a> built with <a href="http://pegjs.majda.cz/">PEGJS</a></li>
+	<li>last updated: 2011.10.18</li>
+</ul>
+<br />
+Instructions
+<p>
+<br />Enter an expression into the top bar and press Execute or Enter to calculate the results.
+<br />Ansi c expressions are suported with its operator precedence.
+<br />Unsuported operators are the '.', '->' and '[]'.
+<br />New operators are: '>>>' (unsigned shift right), '**' power, ...
+<br />Assigment operators declare or overwrite variables. ex("a = 2")
+<br />Multiple expressions are also supported separated by ';' the last experssions result will be displayed. ex("a=2;b=9;a*b")
+<br />This calculator remembers all the calculations in history. You can cicle through tem with up and down arrows.
+<br />All results are calculated using the folowing <a href="parser.pegjs">grammar</a>.
+<br />
+<br />This calculator can handle input numbers in several different bases:
+<br />Decimal (Base 10): Numbers that do not start with a zero like 15 or 3.14e15. Decimal numbers can contain digits 0-9, decimals, and scientific notation.
+<br />Hexadecimal (Base 16): Integers that start with a zero x like 0x1a5. Hexadecimal numbers can contain digits 0-9 and a-f (or A-F) but no decimal or scientific notation.
+<br />Octal (Base 8): Integers that start with a zero like 073. Octal numbers can contain digits 0-7 but no decimal or scientific notation.
+<!--br /><Binary (Base 2): Integers that start with a zero b like 0b101. Binary numbers can contain digits 0 and 1 but no decimal or scientific notation.-->
+<br /><br />^ is the bitwise xor operation. To raise a number to a power use pow() function or ** operator.
+</p>
+</div>
+<div id="options" hidden="true"><br />
+Options
+<ul>
+	<li><input type="checkbox" onchange="multilineInput = this.checked;" > use multiline input</input></li>
+</ul>
+</div>
+<ul id="list"></ul>
+
+</body>
+</html>
