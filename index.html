@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator</title>
 <script type="text/javascript">
 
@@ -108,32 +109,32 @@ var doClear = false;
 var logIndex = calculator.history.length;
 var multilineInput = false;
 
-function doExpression(input) {
-	var expr = input.value;
+function doExpression(input, expr) {
 	try {
 		doClear = true;
 		calculator.history[calculator.history.length] = expr;
 		logIndex = calculator.history.length;
 		input.value = calculator.parser.parse(expr);
+		document.title = 'Calculator [= ' + input.value + ' ]';
 	}
 	catch (e) {
 		input.value = e.line !== undefined && e.column !== undefined
 			? "Line " + e.line + ", column " + e.column + ": " + e.message
 			: e.message;
+		document.title = 'Calculator [= Error ]';
 	}
 }
-function doFunction(input, value, noparams) {
-	if (noparams) {
+function doOperator(input, value, prefix) {
+	if (value.endsWith('()')) {
+		value = value.substr(0, value.length - 2);
+		input.value = value + '(' + input.value + ')';
+	}
+	else if (prefix) {
 		input.value = value + input.value;
 	}
 	else {
-		input.value = value + '(' + input.value + ')';
+		input.value = input.value + ' ' + value + ' ';
 	}
-	logIndex = calculator.history.length;
-	doClear = false;
-}
-function doOperator(input, value) {
-	input.value = input.value + ' ' + value + ' ';
 	logIndex = calculator.history.length;
 	doClear = false;
 }
@@ -150,63 +151,71 @@ function doText(input, value) {
 	doClear = true;
 }
 
-function setButton(row, col, value, alt) {
-	var el = document.getElementById('b' + row + col);
-	if (el) {
-		el.value = value;
-		el.title = alt || '';
+function setButton(row, col, func, value, title) {
+	var input = document.getElementById('input');
+	var button = document.getElementById('b' + row + col);
+	if (button != null) {
+		button.value = value;
+		button.title = title || '';
+		button.onclick = function() {
+			func(input, value);
+		}
 	}
 }
 function modeHex() {
-	setButton(1, 1, 'D');
-	setButton(1, 2, 'E');
-	setButton(1, 3, 'F');
-	setButton(1, 5, '<<', 'Shift left');
-	setButton(2, 1, 'A');
-	setButton(2, 2, 'B');
-	setButton(2, 3, 'C');
-	setButton(2, 5, '>>', 'Shift right');
-	setButton(3, 5, '>>>', 'Shift right unsigned');
-	setButton(4, 5, '&');
-	setButton(5, 5, '|');
-	setButton(6, 5, '^');
-	setButton(6, 2, '~');
+	setButton(1, 1, doValue, 'D');
+	setButton(1, 2, doValue, 'E');
+	setButton(1, 3, doValue, 'F');
+	setButton(1, 5, doOperator, '<<', 'Shift left');
+	setButton(2, 1, doValue, 'A');
+	setButton(2, 2, doValue, 'B');
+	setButton(2, 3, doValue, 'C');
+	setButton(2, 5, doOperator, '>>', 'Shift right');
+	setButton(3, 5, doOperator, '>>>', 'Shift right unsigned');
+	setButton(4, 5, doOperator, '&');
+	setButton(5, 5, doOperator, '|');
+	setButton(6, 5, doOperator, '^');
+	setButton(6, 2, doOperator, '~');
 }
 function modeMath() {
-	setButton(1, 1, 'sin');
-	setButton(1, 2, 'cos');
-	setButton(1, 3, 'tan');
-	setButton(1, 5, 'e');
-	setButton(2, 1, 'asin');
-	setButton(2, 2, 'acos');
-	setButton(2, 3, 'atan');
-	setButton(2, 5, 'pi');
-	setButton(3, 5, '**');
-	setButton(4, 5, 'sqrt');
-	setButton(5, 5, 'exp');
-	setButton(6, 5, 'ln');
-	setButton(6, 2, '.');
+	setButton(1, 1, doOperator, 'sin()', 'Sine, sin(x)');
+	setButton(1, 2, doOperator, 'cos()', 'Cosine, cos(x)');
+	setButton(1, 3, doOperator, 'tan()', 'Tangent, tan(x)');
+	setButton(1, 5, doValue, 'e', 'Euler\'s number, 2.718281...');
+	setButton(2, 1, doOperator, 'asin()', 'Inverse Sine, asin(x)');
+	setButton(2, 2, doOperator, 'acos()', 'Inverse Cosine, acos(x)');
+	setButton(2, 3, doOperator, 'atan()', 'Inverse Tangent, atan(x)');
+	setButton(2, 5, doValue, 'pi', 'Ratio of circle\'s circumference to its diameter, 3.141592');
+	setButton(3, 5, doOperator, '**', 'Raise to power');
+	setButton(4, 5, doOperator, 'sqrt()', 'Square root');
+	setButton(5, 5, doOperator, 'exp()', 'Exponential');
+	setButton(6, 5, doOperator, 'ln()', 'Natural logarithm');
 }
 function modeMath2() {
-	setButton(1, 1, 'sinh');
-	setButton(1, 2, 'cosh');
-	setButton(1, 3, 'tanh');
-	setButton(1, 5, 'e');
-	setButton(2, 1, 'asinh');
-	setButton(2, 2, 'acosh');
-	setButton(2, 3, 'atanh');
-	setButton(2, 5, 'pi');
-	setButton(3, 5, '**');
-	setButton(4, 5, 'sqrt');
-	setButton(5, 5, 'exp');
-	setButton(6, 5, 'log2');
-	setButton(6, 2, '.');
+	setButton(1, 1, doOperator, 'sinh()', 'Hyperbolic Sine, sinh(x)');
+	setButton(1, 2, doOperator, 'cosh()', 'Hyperbolic Cosine, cosh(x)');
+	setButton(1, 3, doOperator, 'tanh()', 'Hyperbolic Tangent, tanh(x)');
+	setButton(1, 5, doValue, 'e', 'Euler\'s number, 2.718281...');
+	setButton(2, 1, doOperator, 'asinh()', 'Inverse Hyperbolic Sine, asinh(x)');
+	setButton(2, 2, doOperator, 'acosh()', 'Inverse Hyperbolic Cosine, acosh(x)');
+	setButton(2, 3, doOperator, 'atanh()', 'Inverse Hyperbolic Tangent, atanh(x)');
+	setButton(2, 5, doValue, 'pi', 'Ratio of circle\'s circumference to its diameter, 3.141592');
+	setButton(3, 5, doOperator, '**');
+	setButton(4, 5, doOperator, 'sqrt()', 'Square root');
+	setButton(5, 5, doOperator, 'exp()', 'Exponential');
+	setButton(6, 5, doOperator, 'log10()', 'Logarithm (base 10)');
 }
 function doMode(select) {
 	switch (select.selectedIndex) {
-		case 0: modeHex(); break;
-		case 1: modeMath(); break;
-		case 2: modeMath2(); break;
+		case 0:
+			modeHex();
+			break;
+		case 1:
+			modeMath();
+			break;
+		case 2:
+			modeMath2();
+			break;
 	}
 }
 
@@ -222,7 +231,6 @@ function stepThroughLog(reverse) {
 			logIndex = 0;
 	}
 	input.value = calculator.history[logIndex];
-	//~ debuggie.value = logIndex;
 }
 
 function doKey(e, input) {
@@ -237,11 +245,11 @@ function doKey(e, input) {
 			break;
 
 		case 27: // escape
-			input.value = '';
+			doExpression(input, '');
 			break;
 
 		case 13: // enter
-			doExpression(input);
+			doExpression(input, input.value);
 			break;
 
 		case 38: // up
@@ -282,7 +290,6 @@ function doList(obj, options) {
 		}
 
 		list.insertBefore(ul, options.append ? null : list.children[0]);
-
 	}
 
 	if (!options) {
@@ -303,7 +310,7 @@ function doList(obj, options) {
 
 	else for (var o in obj) {
 		if (typeof(obj[o]) == 'function') {
-			insertItem(new listEl(o, o, 'doFunction'));
+			insertItem(new listEl(o, o + '()', 'doOperator'));
 		}
 		else if (typeof(obj[o]) == 'number') {
 			insertItem(new listEl(o, o, 'doValue'));
@@ -316,71 +323,84 @@ function doList(obj, options) {
 
 </script>
 <style type="text/css">
-table tr td input{width: 46px;}
-table tr td{text-align: center;}
-div ul{margin: 0; padding-top: 0;}
+html, body, table {width: 100%;margin: 0;}
+body {font-size: 1.2em;}
+table tr td>* { width: 100%; font-size: 1.2em;}
+table tr td textarea { font-size: 1.6em; }
+table tr td input { width: 4em; text-align: center; cursor: pointer; }
+table tr td { text-align: center; }
+div ul { margin: 0; padding-top: 0; }
 </style>
 </head>
-<body>
+<body onload="modeMath();">
 Expression Calculator:
 <a href="javascript:void(options.hidden = !options.hidden);">Options</a>
 <a href="javascript:void(help.hidden = !help.hidden);">Help</a>
 <br />
 <table>
+<!-- TODO: layout
+     Mode  Clear  Execute
+ sin  cos  tan   ln  ()
+asin acos atan  exp  √
+  7    8    9    ÷   **
+  4    5    6    ×   %
+  1    2    3    -   pi
+  0    .    ±    +   e
+-->
 	<tr><!--                  -->
-		<td colspan="5"><textarea type="text" rows="3" style="width: 100%" id="input" onkeydown="doKey(event, input);"></textarea></td>
+		<td colspan="5"><textarea type="text" rows="5" style="width: 100%" id="input" onkeydown="doKey(event, input);"></textarea></td>
 	</tr>
-	<tr><!-- Mode  C  Execute -->
+	<tr class="key_row"><!-- Mode  C  Execute -->
 		<td colspan="2" ><select id="mode" onchange="doMode(this);" >
 				<option>Bits</option>
 				<option selected>Math</option>
 				<option>Math2</option>
 			</select>
 		</td>
-		<td><input type="button" value="Clear" onclick="input.value = '';" /></td>
-		<td colspan="2"><input type="button" style="width: 100%" value="Execute" onclick="doExpression(input);" /></td>
+		<td><input type="button" value="Clear" onclick="doExpression(input, '');" /></td>
+		<td colspan="2"><input type="button" style="width: 100%" value="Execute" onclick="doExpression(input, input.value);" /></td>
 	</tr>
-	<tr><!-- D  E  F  () e    -->
-		<td><input id="b11" type="button" value="sin" onclick="(this.value == 'D' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b12" type="button" value="cos" onclick="(this.value == 'E' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b13" type="button" value="tan" onclick="(this.value == 'F' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b14" type="button" value="()" onclick="doFunction(input, '')" /></td>
-		<td><input id="b15" type="button" value="e" onclick="(this.value !== '<<' ? doValue : doOperator)(input, this.value)" /></td>
+	<tr class="key_row"><!-- D  E  F  () e    -->
+		<td><input id="b11" type="button" /></td>
+		<td><input id="b12" type="button" /></td>
+		<td><input id="b13" type="button" /></td>
+		<td><input id="b14" type="button" value="()" onclick="doOperator(input, this.value);" /></td>
+		<td><input id="b15" type="button" /></td>
 	</tr>
-	<tr><!-- A  B  C  %  pi   -->
-		<td><input id="b21" type="button" value="asin" onclick="(this.value === 'A' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b22" type="button" value="acos" onclick="(this.value === 'B' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b23" type="button" value="atan" onclick="(this.value === 'C' ? doValue : doFunction)(input, this.value)" /></td>
-		<td><input id="b24" type="button" value="%" onclick="doOperator(input, this.value)" /></td>
-		<td><input id="b25" type="button" value="pi" onclick="(this.value !== '>>' ? doValue : doOperator)(input, this.value)" /></td>
+	<tr class="key_row"><!-- A  B  C  %  pi   -->
+		<td><input id="b21" type="button" /></td>
+		<td><input id="b22" type="button" /></td>
+		<td><input id="b23" type="button" /></td>
+		<td><input id="b24" type="button" value="%" onclick="doOperator(input, this.value);" /></td>
+		<td><input id="b25" type="button" /></td>
 	</tr>
-	<tr><!-- 7  8  9  /  pow  -->
-		<td><input id="b31" type="button" value="7" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b32" type="button" value="8" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b33" type="button" value="9" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b34" type="button" value="/" onclick="doOperator(input, this.value)" /></td>
-		<td><input id="b35" type="button" value="**" onclick="doOperator(input, this.value)" /></td>
+	<tr class="key_row"><!-- 7  8  9  ÷  pow  -->
+		<td><input id="b31" type="button" value="7" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b32" type="button" value="8" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b33" type="button" value="9" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b34" type="button" value="÷" onclick="doOperator(input, '/');" /></td>
+		<td><input id="b35" type="button" value="**" onclick="doOperator(input, this.value);" /></td>
 	</tr>
-	<tr><!-- 4  5  6  *  sqrt -->
-		<td><input id="b41" type="button" value="4" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b42" type="button" value="5" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b43" type="button" value="6" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b44" type="button" value="*" onclick="doOperator(input, this.value)" /></td>
-		<td><input id="b45" type="button" value="sqrt" onclick="(this.value !== '&' ? doFunction : doOperator)(input, this.value)" /></td>
+	<tr class="key_row"><!-- 4  5  6  ×  sqrt -->
+		<td><input id="b41" type="button" value="4" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b42" type="button" value="5" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b43" type="button" value="6" onclick="doValue(input, this.value);" /></td>
+		<td><input id="b44" type="button" value="×" onclick="doOperator(input, '*');" /></td>
+		<td><input id="b45" type="button" /></td>
 	</tr>
-	<tr><!-- 1  2  3  -  exp  -->
+	<tr class="key_row"><!-- 1  2  3  -  exp  -->
 		<td><input id="b51" type="button" value="1" onclick="doValue(input, this.value)" /></td>
 		<td><input id="b52" type="button" value="2" onclick="doValue(input, this.value)" /></td>
 		<td><input id="b53" type="button" value="3" onclick="doValue(input, this.value)" /></td>
 		<td><input id="b54" type="button" value="-" onclick="doOperator(input, this.value)" /></td>
-		<td><input id="b55" type="button" value="exp" onclick="(this.value !== '|' ? doFunction : doOperator)(input, this.value)" /></td>
+		<td><input id="b55" type="button" /></td>
 	</tr>
-	<tr><!-- 0  .  ±  +  ln   -->
+	<tr class="key_row"><!-- 0  .  ±  +  ln   -->
 		<td><input id="b61" type="button" value="0" onclick="doValue(input, this.value)" /></td>
-		<td><input id="b62" type="button" value="." onclick="(this.value !== '~' ? doValue : doFunction)(input, this.value, true)" /></td>
-		<td><input id="b63" type="button" value="&plusmn;" onclick="doFunction(input, '-', true)" /></td>
+		<td><input id="b62" type="button" value="." onclick="doValue(input, this.value)" /></td>
+		<td><input id="b63" type="button" value="±" onclick="doOperator(input, '-', true)" /></td>
 		<td><input id="b64" type="button" value="+" onclick="doOperator(input, this.value)" /></td>
-		<td><input id="b65" type="button" value="ln" onclick="(this.value !== '^' ? doFunction : doOperator)(input, this.value)" /></td>
+		<td><input id="b65" type="button" /></td>
 	</tr>
 </table>
 <a href="javascript:doList(calculator.examples);" >Examples</a>
@@ -420,6 +440,7 @@ Instructions
 Options
 <ul>
 	<li><input type="checkbox" onchange="multilineInput = this.checked;" > use multiline input</input></li>
+	<li><input type="checkbox" onchange=";" > show keyboard</input></li>
 </ul>
 </div>
 <ul id="list"></ul>

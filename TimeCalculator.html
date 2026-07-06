@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time calculator</title>
+<style>
+html, body, input, select {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	outline-width: 0;
+	font-size: 45px;
+	overflow: hidden;
+}
+.displaybox {
+	width: 100%;
+	height: 1.1em;
+	background-color: #dadada;
+}
+.displaybox > * {
+	height: 100%;
+	display: block;
+	overflow: hidden;
+	background-color: transparent;
+}
+.displaybox #input {
+	display: block;
+	width: 100%;
+	height: 100%;
+	font-size: 1em;
+	background-color: transparent;
+}
+.displaybox #display {
+	float: left;
+	width: auto;
+	height: 100%;
+	padding-left: .2em;
+	padding-right: .2em;
+	background-color: transparent;
+}
+
+#history {
+	font-size: .75em;
+}
+#history a {
+	font-size: 0.5em;
+	text-decoration: none;
+	vertical-align: middle;
+}
+</style>
+<script language="JavaScript" src="TimeCalculator.js"></script>
+<script language="JavaScript">
+function init() {
+	const calc = Peggy;
+	const input = document.getElementById('input');
+	const result = document.getElementById('result');
+	const history = document.getElementById('history');
+
+	input.oninput = input.onkeypress = function(event) {
+		const val = input.value;
+		try {
+			if (event.constructor === InputEvent) {
+				result.textContent = calc.parse(val);
+			}
+			if (event.key === "Enter") {
+				result.textContent = calc.parse(val);
+				const li = document.createElement('li');
+				const rm = document.createElement('a');
+				rm.innerText = " 🗑️ ";
+				rm.href = "#";
+				rm.onclick = function() {
+					li.remove();
+				}
+
+				li.appendChild(rm);
+				li.appendChild(document.createTextNode(result.textContent));
+				li.appendChild(document.createTextNode(" = "));
+				li.appendChild(document.createTextNode(input.value));
+				li.onclick = function() {
+					input.value = val;
+					result.textContent = calc.parse(val);
+				}
+				history.prepend(li);
+			}
+		} catch (e) {
+			result.textContent = e;
+		}
+	};
+}
+
+</script>
+	</head>
+	<body onload="init();">
+		<div class="displaybox">
+			<span><input id="input"></span>
+		</div>
+		<div id="info">
+			<span id="result"></span>
+		</div>
+		<ul id="history"></ul>
+	</body>
+</html>

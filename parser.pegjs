@@ -1,11 +1,11 @@
 /* Parser variable: calculator.parser
 // test variables and functions
-{calculator = {
-	constants:{
+{var calculator = {
+	constants: {
 		e: Math.E,
 		pi: Math.PI,
 	},
-	functions:{
+	functions: {
 		sin: Math.sin,
 	}
 }} // */
@@ -103,21 +103,27 @@ expr_ior = lhs:expr_xor op:(_ '|' _ expr_xor)* {
 	}
 	return lhs;
 }
-expr_lnd = lhs:expr_ior op:(_ '&&' _ expr_ior)* {
-	for (var i = 0; lhs && i < op.length; i += 1) {
+expr_all = lhs:expr_ior op:(_ '&&' _ expr_ior)* {
+	for (var i = 0; i < op.length; i += 1) {
+		if (!lhs) {
+			break;
+		}
 		lhs = op[i][3];
 	}
-	return lhs;// ? 1 : 0;
+	return lhs;
 }
-expr_lor = lhs:expr_lnd op:(_ '||' _ expr_lnd)* {
-	for (var i = 0; !lhs && i < op.length; i += 1) {
+expr_any = lhs:expr_all op:(_ '||' _ expr_all)* {
+	for (var i = 0; i < op.length; i += 1) {
+		if (lhs) {
+			break;
+		}
 		lhs = op[i][3];
 	}
-	return lhs;// ? 1 : 0;
+	return lhs;
 }
-expr_sel = tst:expr_lor _ '?' _ lhs:expr_sel _ ':' _ rhs:expr_sel {	// this is right to left !!!
+expr_sel = tst:expr_any _ '?' _ lhs:expr_sel _ ':' _ rhs:expr_sel {	// this is right to left !!!
 	return tst ? lhs : rhs;
-} / expr_lor
+} / expr_any
 expr_set = lhs:identifyer _ op:('=' / '**=' / '*=' / '/=' / '%=' / '+=' / '-=' / '<<=' / '>>>=' / '>>=' / '&=' / '^=' / '|=') _ rhs:expr_set {	// TODO: these are right to left !!!
 	switch (op) {
 		case '=': calculator.variables[lhs] = rhs; break;

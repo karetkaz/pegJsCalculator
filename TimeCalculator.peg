@@ -1,0 +1,106 @@
+/* Time and duration calculator grammar with arithmetic operators: +, -, * /
+ * ================================================
+ * Parse timestamps like: 2026.06.08-12:43:36.614
+ * Parse durations: H:M:S.MS (12:43:36.614)
+ * Parse durations: M:S.MS (43:36.614)
+ * Parse durations: S.MS (36.614)
+ * Parse durations with sufix [dhms]: (36d)
+ * Parse durations: MS (36614)
+ * todo: The ambiguity between "plain ms duration" and "unix epoch ms" is resolved by digit count — 10 digits = epoch seconds, 13 digits = epoch ms, anything else = duration.
+*/
+
+//* Comment result for no formatting
+Result = value:Expression {
+	const d = new Date(value);
+	if (d.getUTCFullYear() > 1990 && d.getUTCFullYear() < 2990) {
+		return d.toISOString();
+	}
+	const sign = value < 0 ? '-' : '';
+	let v = Math.abs(value);
+	const ms = String(Math.floor(v % 1000)).padStart(3,'0');
+	v /= 1000;
+	const s = String(Math.floor(v % 60)).padStart(2,'0');
+	v /= 60;
+	const m = String(Math.floor(v % 60)).padStart(2,'0');
+	v /= 60;
+	/*if (v > 24) {
+		const h = String(Math.floor(v % 24)).padStart(2,'0');
+		return sign + String(Math.floor(v / 24)) + ':' + h + ':' + m + ':' + s + '.' + ms;
+	}*/
+	return sign + String(Math.floor(v)) + ':' + m + ':' + s + '.' + ms;
+}// */
+
+Expression = head:Term tail:(_ ("+" / "-") _ Term)* {
+	return tail.reduce(function(result, element) {
+		if (element[1] === "+") { return result + element[3]; }
+		if (element[1] === "-") { return result - element[3]; }
+	}, head);
+}
+
+Term = head:Factor tail:(_ ("*" / "/") _ Factor)* {
+	return tail.reduce(function(result, element) {
+		if (element[1] === "*") { return result * element[3]; }
+		if (element[1] === "/") { return result / element[3]; }
+	}, head);
+}
+
+Factor = "(" _ expr:Expression _ ")" { return expr; }
+	/ Value
+
+Value
+	= _ y :[0-9]+ '.' M :[0-9]+ '.' d :[0-9]+ ('-'/'T') h :[0-9]+ ':' m :[0-9]+ ':' s :[0-9]+ '.' ms :[0-9]+ {
+		let r = new Date(0);
+		r.setUTCMilliseconds((parseFloat('.'+ms.join(''), 10) * 1000).toFixed());
+		r.setUTCSeconds(parseInt(s.join(''), 10));
+		r.setUTCMinutes(parseInt(m.join(''), 10));
+		r.setUTCHours(parseInt(h.join(''), 10));
+		r.setUTCDate(parseInt(d.join(''), 10));
+		r.setUTCMonth(parseInt(M.join(''), 10) - 1);
+		r.setUTCFullYear(parseInt(y.join(''), 10));
+		return r.getTime();
+	}
+	/ _ h :([0-9]+':')? m :([0-9]+ ':')? value :([0-9]+ '.' [0-9]+) {
+		let text = value[0].join('') + value[1] + value[2].join('');
+		let ms = (parseFloat(text, 10) * 1000).toFixed();
+		if (h == null && m == null) {
+			return ms;
+		}
+
+		let d = new Date(0);
+		d.setUTCMilliseconds(ms);
+		if (h != null && m != null) {
+			d.setUTCMinutes(parseInt(m[0].join(''), 10));
+			d.setUTCHours(parseInt(h[0].join(''), 10));
+		}
+		else if (h != null) {
+			d.setUTCMinutes(parseInt(h[0].join(''), 10));
+		}
+		else if (m != null) {
+			d.setUTCMinutes(parseInt(m[0].join(''), 10));
+		}
+		return d.getTime();
+	}
+	/ _ value :([0-9]+ [dhms]?) {
+		let text = value[0].join('');
+		let scale = 1;
+		if (value[1] === 's') {
+			scale = 1000;
+		}
+		else if (value[1] === 'm') {
+			scale = 60 * 1000;
+		}
+		else if (value[1] === 'h') {
+			scale = 60 * 60 * 1000;
+		}
+		else if (value[1] === 'd') {
+			scale = 24 * 60 * 60 * 1000;
+		}
+		else if (text.length == 10) {
+			// epoch in seconds?
+			// scale = 1000;
+		}
+
+		return scale * parseInt(text, 10);
+	}
+
+_ "whitespace" = [ \t\n\r]*
